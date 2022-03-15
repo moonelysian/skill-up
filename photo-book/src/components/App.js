@@ -1,12 +1,15 @@
-import Nodes from "./components/Nodes.js";
-import { request } from "./apis/api.js";
-import Breadcrumb from "./components/Breadcrumb.js";
+import Nodes from "./Nodes.js";
+import { request } from "../apis/api.js";
+import Breadcrumb from "./Breadcrumb.js";
+import Modal from "./Modal.js";
 
 export default function App($app) {
   this.state = {
     isRoot: false,
     nodes: [],
     depth: [],
+    isLoading: false,
+    selectedImage: null,
   };
 
   const handleClick = async (node) => {
@@ -14,23 +17,42 @@ export default function App($app) {
       const depth = [...this.state.depth];
       const now = depth.pop();
       const prevNodeId = now.parent ? now.parent.id : null;
+      this.setState({ ...this.state, isLoading: true });
       const prevNodes = await request(prevNodeId);
       this.setState({
         isRoot: prevNodeId ? false : true,
         nodes: prevNodes,
         depth: [...depth],
+        isLoading: false,
+        selectedImage: null,
       });
     }
     if (node.type === "DIRECTORY") {
+      this.setState({ ...this.state, isLoading: true });
       const nextNodes = await request(node.id);
       this.setState({
         isRoot: false,
         nodes: nextNodes,
         depth: [...this.state.depth, node],
+        isLoading: false,
+        selectedImage: null,
       });
     }
     if (node.type === "FILE") {
-      alert("file");
+      this.setState({
+        ...this.state,
+        selectedImage: node.filePath,
+      });
+    }
+  };
+
+  const handleClose = (e) => {
+    if (e.keyCode === 27) {
+      const $target = document.querySelector(".ImageViewer");
+      return ($target.style.display = "none");
+    }
+    if (e.target.classList.value === "Modal ImageViewer") {
+      return (e.target.style.display = "none");
     }
   };
 
@@ -43,6 +65,7 @@ export default function App($app) {
     },
     onClick: handleClick,
   });
+  const modals = new Modal({ $app, initState: this.state, handleClose });
 
   this.setState = (nextState) => {
     this.state = nextState;
@@ -51,12 +74,26 @@ export default function App($app) {
       isRoot: this.state.isRoot,
       nodes: this.state.nodes,
     });
+    modals.setState({
+      isLoading: this.state.isLoading,
+      selectedImage: this.state.selectedImage,
+    });
   };
 
   const init = async () => {
     try {
+      this.setState({
+        ...this.state,
+        isRoot: true,
+        isLoading: true,
+      });
       const rootNodes = await request();
-      this.setState({ ...this.state, isRoot: true, nodes: rootNodes });
+      this.setState({
+        ...this.state,
+        isRoot: true,
+        nodes: rootNodes,
+        isLoading: false,
+      });
     } catch (e) {
       alert(e.message);
     }
