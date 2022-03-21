@@ -16,10 +16,12 @@ export default function SearchInput($app, value, onInput) {
   $form.appendChild($input);
   $app.appendChild($form);
 
-  $input.addEventListener("input", (e) => {
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+  $input.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter") {
       return e.preventDefault();
     }
+  });
+  $input.addEventListener("input", (e) => {
     onInput(e.target.value);
   });
 
