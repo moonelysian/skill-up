@@ -12,75 +12,79 @@ export default function App($app) {
   };
 
   const handleInput = async (value) => {
+    if (!value || value === "") {
+      this.setState({
+        ...this.state,
+        suggestions: [],
+        inputValue: "",
+        hoveredIndex: -1,
+      });
+      return;
+    }
     const results = await search(value);
-    this.setState({ ...this.state, inputValue: value, suggestions: results });
+    this.setState({
+      ...this.state,
+      inputValue: value,
+      suggestions: results,
+      hoveredIndex: -1,
+    });
   };
 
   const handleClick = async ($clickedItem) => {
     let { selected } = this.state;
-
     $clickedItem.classList.add("Suggestion__item--selected");
     const suggestion = $clickedItem.textContent;
-
     const index = selected.indexOf(suggestion);
+
     if (index < 0) {
       selected = [...selected, suggestion];
     } else {
       selected = [
-        ...selected.splice(0, index),
-        ...selected.splice(index + 1),
+        ...selected.slice(0, index),
+        ...selected.slice(index + 1),
         suggestion,
       ];
+    }
+    if (selected.length > 5) {
+      selected = selected.slice(1);
     }
     return this.setState({ ...this.state, selected });
   };
 
   const $selected = new SelectedLanguage($app, this.state.selected);
   const $search = new SearchInput($app, this.state.inputValue, handleInput);
-  const $suggestions = new Suggestion(
-    $app,
-    this.state.suggestions,
-    this.state.hoveredIndex,
-    handleClick
-  );
+  const $suggestions = new Suggestion($app, this.state, handleClick);
 
   this.setState = (nextState) => {
     this.state = nextState;
     $selected.setState(this.state.selected);
     $search.setState(this.state.inputValue);
-    $suggestions.setState({
-      hoveredIndex: this.state.hoveredIndex,
-      suggestions: this.state.suggestions,
-    });
+    $suggestions.setState(this.state);
   };
 
   const handleUpDown = (key) => {
     const UP = "ArrowUp";
     const DOWN = "ArrowDown";
-
-    if (key !== UP && key !== DOWN) {
+    const SUBMIT = "Enter";
+    if (key !== UP && key !== DOWN && key !== SUBMIT) {
       return;
     }
     const { suggestions, hoveredIndex } = this.state;
     if (key === UP) {
       if (hoveredIndex === 0) {
         this.setState({ ...this.state, hoveredIndex: suggestions.length - 1 });
-        $suggestions.focus();
       } else {
         this.setState({ ...this.state, hoveredIndex: hoveredIndex - 1 });
-        $suggestions.focus();
       }
     }
     if (key === DOWN) {
       if (hoveredIndex === suggestions.length - 1) {
         this.setState({ ...this.state, hoveredIndex: 0 });
-        $suggestions.focus();
       } else {
         this.setState({ ...this.state, hoveredIndex: hoveredIndex + 1 });
-        $suggestions.focus();
       }
     }
-    $suggestions.focus();
+    $suggestions.focus(key === SUBMIT);
   };
 
   const init = () => {
