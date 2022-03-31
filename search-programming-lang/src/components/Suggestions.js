@@ -28,7 +28,7 @@ export default function Suggestion($app, initState, handleClick) {
   $target.className = "Suggestion";
 
   this.render = () => {
-    const { suggestions, inputValue } = this.state;
+    const { suggestions, hoveredIndex, inputValue } = this.state;
     if (suggestions.length === 0) {
       const isExist = $app.querySelector(".Suggestion");
       return isExist && $app.removeChild($target);
@@ -39,23 +39,10 @@ export default function Suggestion($app, initState, handleClick) {
       .join("")}</ul>`;
 
     const $elements = $target.querySelectorAll("li");
-    $elements.forEach(($item) => {
-      $item.addEventListener("click", (e) => handleClick(e.currentTarget));
-    });
-  };
-
-  const submit = ($item) => {
-    $item.style.backgroundColor = "#BEE3F8";
-    handleClick($item);
-  };
-
-  this.focus = (isSubmit) => {
-    const $elements = $target.querySelectorAll("li");
     $elements.forEach(($item, idx) => {
-      if (idx === this.state.hoveredIndex) {
-        isSubmit ? submit($item) : ($item.style.backgroundColor = "#90CDF4");
-      } else {
-        $item.style.backgroundColor = "#ffff";
+      $item.addEventListener("click", (e) => handleClick(e.currentTarget));
+      if (idx === hoveredIndex) {
+        $item.style.backgroundColor = "#90CDF4";
       }
     });
   };

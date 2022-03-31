@@ -2,7 +2,6 @@ export default function SearchInput($app, value, onInput) {
   this.state = value;
   this.setState = (nextState) => {
     this.state = nextState;
-    this.render();
   };
 
   const $form = document.createElement("form");
@@ -24,6 +23,4 @@ export default function SearchInput($app, value, onInput) {
   $input.addEventListener("input", (e) => {
     onInput(e.target.value);
   });
-
-  this.render = () => {};
 }

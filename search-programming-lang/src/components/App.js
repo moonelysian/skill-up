@@ -1,14 +1,16 @@
-import search from "../apis/api.js";
+import search from "../api.js";
+import { orderSuggestions } from "../utils.js";
 import SearchInput from "./SearchInput.js";
 import SelectedLanguage from "./SelectedLanguage.js";
-import Suggestion from "./Suggestion.js";
+import Suggestions from "./Suggestions.js";
 
 export default function App($app) {
   this.state = {
     selected: [],
     suggestions: [],
     inputValue: "",
-    hoveredIndex: -1,
+    hoveredIndex: 0,
+    hoveredSuggestion: "",
   };
 
   const handleInput = async (value) => {
@@ -17,81 +19,85 @@ export default function App($app) {
         ...this.state,
         suggestions: [],
         inputValue: "",
-        hoveredIndex: -1,
+        hoveredIndex: 0,
       });
       return;
     }
-    const results = await search(value);
+    const result = await search(value);
     this.setState({
       ...this.state,
       inputValue: value,
-      suggestions: results,
-      hoveredIndex: -1,
+      suggestions: result,
+      hoveredIndex: 0,
     });
+    return;
   };
 
-  const handleClick = async ($clickedItem) => {
-    let { selected } = this.state;
-    $clickedItem.classList.add("Suggestion__item--selected");
-    const suggestion = $clickedItem.textContent;
-    const index = selected.indexOf(suggestion);
+  const alertAndUpdateSelected = (suggestion) => {
+    alert(suggestion);
+    const selected = orderSuggestions(this.state.selected, suggestion);
+    this.setState({ ...this.state, selected });
+  };
 
-    if (index < 0) {
-      selected = [...selected, suggestion];
-    } else {
-      selected = [
-        ...selected.slice(0, index),
-        ...selected.slice(index + 1),
-        suggestion,
-      ];
+  const handleClick = async ($clicked) => {
+    $clicked.classList.add("Suggestion__item--selected");
+    const suggestion = $clicked.textContent;
+    alertAndUpdateSelected(suggestion);
+  };
+
+  const handleEnter = (key) => {
+    const SUBMIT = "Enter";
+    if (key !== SUBMIT) {
+      return;
     }
-    if (selected.length > 5) {
-      selected = selected.slice(1);
+    const { hoveredIndex, suggestions } = this.state;
+    const suggestion = suggestions[hoveredIndex];
+    alertAndUpdateSelected(suggestion);
+  };
+  const handleUpDown = (key) => {
+    const UP = "ArrowUp";
+    const DOWN = "ArrowDown";
+
+    if (key !== UP && key !== DOWN) {
+      return;
     }
-    return this.setState({ ...this.state, selected });
+
+    const { hoveredIndex, suggestions } = this.state;
+
+    if (key === DOWN) {
+      if (hoveredIndex === suggestions.length - 1) {
+        this.setState({ ...this.state, hoveredIndex: 0 });
+        return;
+      }
+      this.setState({ ...this.state, hoveredIndex: hoveredIndex + 1 });
+      return;
+    }
+
+    if (key === UP) {
+      if (hoveredIndex === 0) {
+        this.setState({ ...this.state, hoveredIndex: suggestions.length - 1 });
+        return;
+      }
+      this.setState({ ...this.state, hoveredIndex: hoveredIndex - 1 });
+      return;
+    }
   };
 
   const $selected = new SelectedLanguage($app, this.state.selected);
-  const $search = new SearchInput($app, this.state.inputValue, handleInput);
-  const $suggestions = new Suggestion($app, this.state, handleClick);
+  const $input = new SearchInput($app, this.state.inputValue, handleInput);
+  const $suggestion = new Suggestions($app, this.state, handleClick);
 
   this.setState = (nextState) => {
     this.state = nextState;
     $selected.setState(this.state.selected);
-    $search.setState(this.state.inputValue);
-    $suggestions.setState(this.state);
-  };
-
-  const handleUpDown = (key) => {
-    const UP = "ArrowUp";
-    const DOWN = "ArrowDown";
-    const SUBMIT = "Enter";
-    if (key !== UP && key !== DOWN && key !== SUBMIT) {
-      return;
-    }
-    const { suggestions, hoveredIndex } = this.state;
-    if (key === UP) {
-      if (hoveredIndex === 0) {
-        this.setState({ ...this.state, hoveredIndex: suggestions.length - 1 });
-      } else {
-        this.setState({ ...this.state, hoveredIndex: hoveredIndex - 1 });
-      }
-    }
-    if (key === DOWN) {
-      if (hoveredIndex === suggestions.length - 1) {
-        this.setState({ ...this.state, hoveredIndex: 0 });
-      } else {
-        this.setState({ ...this.state, hoveredIndex: hoveredIndex + 1 });
-      }
-    }
-    $suggestions.focus(key === SUBMIT);
+    $input.setState(this.state.inputValue);
+    $suggestion.setState(this.state);
   };
 
   const init = () => {
-    this.setState({
-      ...this.state,
-    });
+    this.setState({ ...this.state });
     $app.addEventListener("keydown", (e) => handleUpDown(e.key));
+    $app.addEventListener("keydown", (e) => handleEnter(e.key));
   };
   init();
 }
